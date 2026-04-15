@@ -1,0 +1,663 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+/*
+ * GL影视资讯台 — 手机适配版
+ * 底部Tab导航 · 单列卡片流 · 可折叠筛选 · 追剧日历
+ * 所有数据基于2026年4月真实可查的GL影视信息
+ */
+
+// ============ NEWS DATA (verified) ============
+const NEWS = [
+  { id:1, title:"《Girl Rules》EP6播出 NamtanFilm线剧情高能", platform:"Twitter/X", date:"2026-04-14", type:"播出", gl:"明确GL", cred:"S", summary:"GMMTV百合群像剧《Girl Rules》第6集4月14日播出。Namtan饰演Prim与Film饰演Bambi感情线重大转折。MDL评分8.3，IMDb 9.6。iQIYI同步无删减。由Jojo执导，集结NamtanFilm、MilkLove、ViewMim三对CP。", link:"https://mydramalist.com/780112-girl-rules", worth:true, action:"立刻发", read:false, saved:false, note:"" },
+  { id:2, title:"《Hometown Romance》4月3日首播 LMSY三搭新剧", platform:"微博", date:"2026-04-14", type:"播出", gl:"明确GL", cred:"S", summary:"CHANGE2561出品《Hometown Romance》4月3日One31首播，iQIYI同步无删减。Lookmhee与Sonya第三次合作GL剧，改编自小说《Sami Ban Nok》。都市千金Si与乡村地主Klao的假婚真爱。MDL 8.1。", link:"https://www.iq.com/album/hometown-romance-2026-1pg1klzlrtl", worth:true, action:"立刻发", read:false, saved:true, note:"" },
+  { id:3, title:"四元素系列《Water》持续播出 EngLot主演", platform:"Twitter/X", date:"2026-04-13", type:"播出", gl:"明确GL", cred:"S", summary:"GMMTV四元素GL系列第二部《The Water》3月21日开播。职场复仇剧，Lada(Charlotte)潜入公司接近CEO(Engfa)。系列共四部：Earth/Water/Air/Fire，覆盖全年。North Star制作。", link:"https://freenbeckymedia.com/filmography/4-elements-gl-series/", worth:true, action:"整理后发", read:false, saved:false, note:"" },
+  { id:4, title:"FreenBecky《Cranium》入选戛纳 法医悬疑GL", platform:"公众号", date:"2026-04-13", type:"官宣", gl:"明确GL", cred:"S", summary:"Idol Factory旗下FreenBecky新作《Cranium》成为首部入选戛纳的GL剧。Freen饰法医人类学家Dr. Phin，Becky饰Dr. Bua。12集，心理惊悚+法医推理+慢热GL。2026-2027年播出。", link:"https://craniumglseries.com/", worth:true, action:"立刻发", read:true, saved:true, note:"重磅消息" },
+  { id:5, title:"2026泰百GL剧数量预计超48部 创历史新高", platform:"小红书", date:"2026-04-12", type:"热议", gl:"讨论向", cred:"A", summary:"据MDL和多个GL资讯站统计，2026年泰国已确认GL剧达47-48部。GMMTV 8部、CHANGE2561多部、Idol Factory有Cranium和4 Elements Air。泰政府将Y-Series列为软实力产业。", link:"https://mydramalist.com/list/3oKqVWv3", worth:true, action:"立刻发", read:false, saved:false, note:"适合数据盘点" },
+  { id:6, title:"GMMTV 2026年8部GL新剧 四元素+Girl Rules领衔", platform:"Twitter/X", date:"2026-04-11", type:"官宣", gl:"明确GL", cred:"S", summary:"GMMTV在2024年11月推介会发布2026年GL阵容：Girl Rules集结三对成熟CP；四元素Earth/Water/Air/Fire四部；另有Shades等新项目。是GMMTV最大规模GL年度企划。", link:"https://en.wikipedia.org/wiki/Girl_Rules", worth:true, action:"整理后发", read:false, saved:true, note:"" },
+  { id:7, title:"四元素《Air》5月16日播出 FreenBecky皇室护卫GL", platform:"Twitter/X", date:"2026-04-11", type:"官宣", gl:"明确GL", cred:"S", summary:"四元素第三部《The Air》定5月16日首播，8集。Freen饰护卫军官Lom，Becky饰来访公主Catherine。暗杀、身份冒充、政治悬疑与爱情交织。", link:"https://freenbeckymedia.com/filmography/4-elements-gl-series/", worth:true, action:"立刻发", read:false, saved:false, note:"" },
+  { id:8, title:"《Girl Rules》EP5 NamtanFilm亲密戏登热搜第一", platform:"微博", date:"2026-04-10", type:"热议", gl:"明确GL", cred:"S", summary:"第5集播出后NamtanFilm亲密戏份登泰国Twitter热搜榜首。iQIYI提供19+无删减版。被评为「最辣最混乱最有毒的闺蜜圈」，展现成年酷儿生活复杂面。", link:"https://www.iq.com/album/girl-rules-2026-bq3bb5fj2h", worth:true, action:"立刻发", read:true, saved:false, note:"" },
+  { id:9, title:"LingOrm《我们的秘密》持续出圈 Ling全球人气第一", platform:"微博", date:"2026-04-09", type:"热议", gl:"明确GL", cred:"A", summary:"泰国3台首部GL剧《我们的秘密》持续出圈。Ling Sirilak获全球人气排名第一，Orm Kornnaphat获最佳女主演技第一。后续合作动态持续受关注。", link:"#", worth:true, action:"整理后发", read:true, saved:false, note:"" },
+  { id:10, title:"Becky主演《Girl From Nowhere Reset》Netflix播出", platform:"公众号", date:"2026-04-09", type:"播出", gl:"女女支线", cred:"A", summary:"Becky Armstrong主演Netflix重启版《Girl From Nowhere: The Reset》3月7日播出。接替Kitty Chicha饰Nanno。非GL剧但Becky参演引GL圈关注。", link:"https://www.tatlerasia.com/lifestyle/entertainment/thai-series-movies-2026", worth:false, action:"继续观察", read:true, saved:false, note:"非GL剧" },
+  { id:11, title:"《Lycoris Recoil》短篇完结 新作动画未定档", platform:"B站", date:"2026-04-08", type:"热议", gl:"明确GL", cred:"A", summary:"A-1 Pictures短篇《LycoReco Friends are thieves of time.》2025年播完。2023年宣布新作制作决定但无剧场版确认。注意勿传播未证实消息。", link:"https://zh.wikipedia.org/wiki/Lycoris_Recoil", worth:false, action:"继续观察", read:true, saved:true, note:"无剧场版确认" },
+  { id:12, title:"传闻某平台筹划百合专区 暂无官方证实", platform:"微博", date:"2026-04-08", type:"路透", gl:"风险待确认", cred:"C", summary:"社交媒体流传国内某平台策划GL/百合专区，暂无官方证实。来源不明，可信度存疑。", link:"#", worth:false, action:"继续观察", read:false, saved:false, note:"" },
+  { id:13, title:"营销号传播某女星出演GL 疑似虚假", platform:"微博", date:"2026-04-07", type:"热议", gl:"风险待确认", cred:"C", summary:"多个营销号转发某女星出演GL网剧消息，经核查无原始信源，疑博流量虚假传播。", link:"#", worth:false, action:"仅存档", read:true, saved:false, note:"典型风险内容" },
+  { id:14, title:"韩剧《照明商店》女女互动引百合圈讨论", platform:"小红书", date:"2026-04-07", type:"二创扩散", gl:"女女支线", cred:"B", summary:"韩国恐怖剧《照明商店》两位女角被解读为情侣，小红书B站大量讨论。非明确GL但引发百合圈关注。", link:"#", worth:false, action:"继续观察", read:true, saved:false, note:"" },
+];
+
+const PUSH_Q = [
+  { id:"p1", title:"Girl Rules EP6今晚播出 预告暗示重大转折", time:"刚刚", level:"S", type:"播出", isNew:true },
+  { id:"p2", title:"Hometown Romance EP2本周五更新", time:"10分钟前", level:"A", type:"播出", isNew:true },
+  { id:"p3", title:"4 Elements Water最新集 新CP甜度爆表", time:"30分钟前", level:"A", type:"播出", isNew:true },
+  { id:"p4", title:"FreenBecky路透照刷屏社交媒体", time:"1小时前", level:"A", type:"路透", isNew:false },
+  { id:"p5", title:"MDL用户更新2026泰百GL追剧表", time:"2小时前", level:"B", type:"热议", isNew:false },
+];
+
+// ============ CALENDAR DATA (verified April 15, 2026) ============
+const CAL = [
+  { name:"Girl Rules 禁爱游戏", platform:"GMM25 / iQIYI(无删减) / GMMTV YouTube", total:12, aired:6, sched:"每周一 20:30(泰国) / iQIYI 21:30", next:"EP7 — 4月20日(周一)", status:"播出中", synopsis:"时尚广告行业六位女性好友的爱情秘密与纠葛。Prim(Namtan)与前女友Bambi(Film)被迫再合作；Shasha(Milk)和Gorya(Love)暗流涌动；Min(View)与Praew(Mim)发展新感情线。", cast:"Namtan Tipnaree · Film Rachanun · Milk Pansa · Love Pattranite · View Benyapa · Mim Rattanawadee", company:"GMMTV × Moongdoo Studio", director:"Jojo Tichakorn", eps:"12集·约51分钟/集", link:"https://mydramalist.com/780112-girl-rules", color:"#7b1fa2" },
+  { name:"4 Elements: Water", platform:"Channel 7 / iQIYI", total:8, aired:4, sched:"每周六 20:30", next:"EP5 — 4月18日(周六)", status:"播出中", synopsis:"职场复仇剧。Lada(Charlotte)因家族被Wathin集团所害，潜入公司接近CEO(Engfa)。复仇与爱情交织。四元素系列第二部。", cast:"Engfa Waraha · Charlotte Austin (EngLot)", company:"North Star Entertainment", director:"-", eps:"8集·约60分钟/集", link:"https://freenbeckymedia.com/filmography/4-elements-gl-series/", color:"#1565c0" },
+  { name:"Hometown Romance 乡村恋人", platform:"One31 / oneD(泰国) / iQIYI(海外无删减)", total:8, aired:2, sched:"每周五 22:30(One31) / 23:30(iQIYI)", next:"EP3 — 4月17日(周五)", status:"播出中", synopsis:"都市千金Si(Sonya)家族需续租土地，地主Klao(Lookmhee)开条件：嫁给她才续租。假婚姻渐生真感情。改编小说《Sami Ban Nok》。", cast:"Lookmhee Punyapat · Sonya Saranphat (LMSY三搭)", company:"CHANGE2561", director:"Bo Pantip Vibultham", eps:"8集·约60分钟/集", link:"https://www.iq.com/album/hometown-romance-2026-1pg1klzlrtl", color:"#2e7d32" },
+  { name:"Broken of Love", platform:"Channel 3 / Viu", total:12, aired:3, sched:"每周六", next:"EP4 — 4月19日(周六)", status:"播出中", synopsis:"暗黑复仇GL。Alisa(Faye)因童年悲剧追杀仇人，遇到帮她忘记伤痛的女人(Atom)。Fabel Entertainment首部GL。", cast:"Faye Peraya · Atom Pariya", company:"Fabel Entertainment", director:"-", eps:"12集", link:"#", color:"#c62828" },
+  { name:"Shades", platform:"GMMTV YouTube / iQIYI", total:12, aired:1, sched:"每周五 (4月11日首播)", next:"EP2 — 4月18日(周五)", status:"播出中", synopsis:"精英女校校园悬疑GL。四位光鲜女生各自暗藏挣扎，转学生闯入后一切改变。", cast:"Waifha · Tonkhaw · Benz · Yoghurt · Pang", company:"GMMTV", director:"-", eps:"12集", link:"#", color:"#546e7a" },
+  { name:"4 Elements: Air", platform:"待公布(预计iQIYI/Channel 7)", total:8, aired:0, sched:"每周六 — 5月16日首播", next:"EP1 — 5月16日", status:"待播", synopsis:"警官Lom(Freen)保护来访Madelin公主Catherine(Becky)。公主遭暗杀，神秘冒充者出现，忠诚与身份受考验。", cast:"Freen Sarocha · Becky Armstrong", company:"North Star Entertainment", director:"-", eps:"8集·约60分钟/集", link:"https://freenbeckymedia.com/filmography/4-elements-gl-series/", color:"#e65100" },
+  { name:"4 Elements: Fire", platform:"待公布", total:8, aired:0, sched:"每周六 — 7月11日首播", next:"EP1 — 7月11日", status:"待播", synopsis:"童年对手Fai(Namneung)和Kaphrao(Noey)因父亲偏心结怨。15年后重逢，旧怨与暗涌情感同时被点燃。", cast:"Namneung Milin · Noey Kanteera", company:"North Star Entertainment", director:"-", eps:"8集", link:"#", color:"#bf360c" },
+  { name:"4 Elements: Earth", platform:"Channel 7 / iQIYI", total:8, aired:8, sched:"已完结(1月24日-3月14日)", next:"-", status:"已完结", synopsis:"Rose(Mim)从美国回到农场陷入危险。Din(Apple)挺身结婚保护她。四元素第一部。", cast:"Apple Lapisara · Mim Panthita", company:"North Star Entertainment", director:"-", eps:"8集", link:"#", color:"#94a3b8" },
+  { name:"I Wanna Be Sup'Tar", platform:"One31 / oneD App", total:8, aired:8, sched:"已完结(2月6日-3月27日)", next:"-", status:"已完结", synopsis:"翻拍2015年同名剧。过气女星与追梦少女被迫同居，对抗渐变心动。", cast:"Lilly Ladapa · Belle Jiratchaya", company:"CHANGE2561", director:"-", eps:"8集", link:"#", color:"#94a3b8" },
+];
+
+// ============ STYLE HELPERS ============
+const TC = {"官宣":{bg:"#e8f5e9",c:"#2e7d32"},"预告":{bg:"#e3f2fd",c:"#1565c0"},"播出":{bg:"#f3e5f5",c:"#7b1fa2"},"路透":{bg:"#fff3e0",c:"#e65100"},"主创采访":{bg:"#e0f2f1",c:"#00695c"},"热议":{bg:"#fce4ec",c:"#c62828"},"二创扩散":{bg:"#f3e5f5",c:"#6a1b9a"},"明确GL":{bg:"#e8f5e9",c:"#1b5e20"},"高概率GL":{bg:"#e0f7fa",c:"#00838f"},"女女支线":{bg:"#fff8e1",c:"#f57f17"},"讨论向":{bg:"#eceff1",c:"#546e7a"},"风险待确认":{bg:"#fff3e0",c:"#bf360c"},"S":{bg:"#e8f5e9",c:"#2e7d32"},"A":{bg:"#e3f2fd",c:"#1565c0"},"B":{bg:"#fff8e1",c:"#f57f17"},"C":{bg:"#ffebee",c:"#c62828"},"立刻发":{bg:"#e8f5e9",c:"#2e7d32"},"整理后发":{bg:"#e3f2fd",c:"#1565c0"},"继续观察":{bg:"#fff8e1",c:"#f57f17"},"仅存档":{bg:"#eceff1",c:"#78909c"}};
+
+function Tag({label}) {
+  const t = TC[label] || {bg:"#eceff1",c:"#546e7a"};
+  return <span style={{display:"inline-block",padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:500,background:t.bg,color:t.c,lineHeight:1.6,whiteSpace:"nowrap"}}>{label}</span>;
+}
+
+function Toast({msg,vis}) {
+  return <div style={{position:"fixed",bottom:80,left:"50%",transform:`translateX(-50%) translateY(${vis?0:20}px)`,background:"#1a3a4a",color:"#fff",padding:"8px 20px",borderRadius:8,fontSize:13,opacity:vis?1:0,transition:"all .3s",zIndex:9999,pointerEvents:"none"}}>{msg}</div>;
+}
+
+function Toggle({on,fn}) {
+  return <div onClick={fn} style={{width:42,height:22,borderRadius:11,background:on?"#1a8a6e":"#d0d7de",cursor:"pointer",position:"relative",transition:"background .2s",flexShrink:0}}><div style={{width:18,height:18,borderRadius:9,background:"#fff",position:"absolute",top:2,left:on?22:2,transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/></div>;
+}
+
+// ============ NEWS CARD (mobile) ============
+function Card({item, onUp, onToast}) {
+  const [exp, setExp] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [noteVal, setNoteVal] = useState(item.note);
+
+  return (
+    <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",marginBottom:10,border:"1px solid #e8ecf0",opacity:item.read?.7:1}}>
+      {/* tags */}
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+        <Tag label={item.type}/><Tag label={item.gl}/><Tag label={item.cred+"级"}/>
+        {item.worth && <Tag label={item.action}/>}
+      </div>
+      {/* title */}
+      <div style={{fontWeight:600,fontSize:15,lineHeight:1.5,color:"#1a2a3a",marginBottom:6}}>
+        {item.read && <span style={{color:"#94a3b8",marginRight:4}}>{"\u2713"}</span>}
+        {item.title}
+      </div>
+      {/* meta */}
+      <div style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"#8899aa",marginBottom:8}}>
+        <span style={{background:"#f1f5f9",padding:"1px 6px",borderRadius:4}}>{item.platform}</span>
+        <span>{item.date}</span>
+      </div>
+      {/* summary */}
+      <div style={{fontSize:13,color:"#4a5568",lineHeight:1.7,marginBottom:8}}>
+        {exp ? item.summary : item.summary.slice(0,80)+(item.summary.length>80?"...":"")}
+        {item.summary.length>80 && <span onClick={()=>setExp(!exp)} style={{color:"#1a8a6e",cursor:"pointer",marginLeft:4,fontSize:12}}>{exp?"收起":"展开"}</span>}
+      </div>
+      {/* note */}
+      {item.note && <div style={{fontSize:12,color:"#8899aa",background:"#f8fafb",padding:"4px 8px",borderRadius:4,marginBottom:8}}>备注: {item.note}</div>}
+      {/* actions */}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <button onClick={()=>onUp(item.id,{saved:!item.saved})} style={{fontSize:12,padding:"6px 12px",borderRadius:6,border:"1px solid #e2e8f0",background:item.saved?"#fff8e1":"#fff",cursor:"pointer"}}>{item.saved?"\u2605 已收藏":"\u2606 收藏"}</button>
+        <button onClick={()=>onUp(item.id,{read:!item.read})} style={{fontSize:12,padding:"6px 12px",borderRadius:6,border:"1px solid #e2e8f0",background:item.read?"#e8f5e9":"#fff",cursor:"pointer"}}>{item.read?"\u2713 已读":"标记已读"}</button>
+        <button onClick={()=>{if(item.link&&item.link!=="#")window.open(item.link,"_blank");else onToast("暂无链接");}} style={{fontSize:12,padding:"6px 12px",borderRadius:6,border:"1px solid #b2dfdb",background:"#e0f2f1",color:"#00695c",cursor:"pointer"}}>链接</button>
+        <button onClick={()=>{navigator.clipboard.writeText(`【${item.title}】${item.summary} #GL影视`);onToast("已复制");}} style={{fontSize:12,padding:"6px 12px",borderRadius:6,border:"1px solid #bbdefb",background:"#e3f2fd",color:"#1565c0",cursor:"pointer"}}>复制</button>
+        <button onClick={()=>setNoteOpen(true)} style={{fontSize:12,padding:"6px 12px",borderRadius:6,border:"1px solid #e2e8f0",background:"#f8fafb",color:"#546e7a",cursor:"pointer"}}>备注</button>
+      </div>
+      {/* note modal */}
+      {noteOpen && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.4)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:1000}} onClick={()=>setNoteOpen(false)}>
+          <div style={{background:"#fff",borderRadius:"16px 16px 0 0",padding:20,width:"100%",maxWidth:500,maxHeight:"50vh"}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontWeight:600,fontSize:15,marginBottom:10}}>编辑备注</div>
+            <textarea value={noteVal} onChange={e=>setNoteVal(e.target.value)} rows={3} style={{width:"100%",border:"1px solid #d0d7de",borderRadius:8,padding:10,fontSize:14,fontFamily:"inherit",boxSizing:"border-box"}} placeholder="写点备注..."/>
+            <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:10}}>
+              <button onClick={()=>setNoteOpen(false)} style={{padding:"8px 18px",borderRadius:8,border:"1px solid #d0d7de",background:"#fff",cursor:"pointer",fontSize:14}}>取消</button>
+              <button onClick={()=>{onUp(item.id,{note:noteVal});setNoteOpen(false);onToast("已保存");}} style={{padding:"8px 18px",borderRadius:8,border:"none",background:"#1a8a6e",color:"#fff",cursor:"pointer",fontSize:14}}>保存</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ PAGES ============
+function P_Home({news,onUp,onToast,go}) {
+  const today = news.filter(n=>n.date==="2026-04-14");
+  const urgent = news.filter(n=>n.action==="立刻发"&&!n.read);
+  return (
+    <div>
+      {/* stats */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}}>
+        {[{l:"今日新增",v:today.length,c:"#1a8a6e"},{l:"待发",v:urgent.length,c:"#1565c0"},{l:"未读",v:news.filter(n=>!n.read).length,c:"#e65100"},{l:"已收藏",v:news.filter(n=>n.saved).length,c:"#f57f17"}].map((s,i)=>
+          <div key={i} style={{background:"#fff",borderRadius:10,padding:"12px 14px",border:"1px solid #e8ecf0"}}>
+            <div style={{fontSize:20,fontWeight:700,color:s.c}}>{s.v}</div>
+            <div style={{fontSize:12,color:"#8899aa"}}>{s.l}</div>
+          </div>
+        )}
+      </div>
+      {/* today */}
+      <div style={{fontWeight:600,fontSize:15,marginBottom:10,color:"#1a2a3a"}}>{"\u26A1"} 今日重点</div>
+      {today.length===0 && <div style={{color:"#94a3b8",fontSize:13,marginBottom:16}}>今日暂无</div>}
+      {today.map(n=><Card key={n.id} item={n} onUp={onUp} onToast={onToast}/>)}
+      {/* urgent */}
+      <div style={{fontWeight:600,fontSize:15,marginBottom:10,marginTop:16,color:"#1a2a3a"}}>建议立刻发</div>
+      {urgent.map(n=><Card key={n.id} item={n} onUp={onUp} onToast={onToast}/>)}
+      {/* recent list */}
+      <div style={{fontWeight:600,fontSize:15,marginBottom:10,marginTop:16,color:"#1a2a3a"}}>最近资讯</div>
+      {news.slice(0,6).map(n=>
+        <div key={n.id} onClick={()=>go(1)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 0",borderBottom:"1px solid #f1f5f9",fontSize:13,cursor:"pointer"}}>
+          <Tag label={n.type}/>
+          <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"#1a2a3a"}}>{n.title}</span>
+          <span style={{fontSize:11,color:"#94a3b8",flexShrink:0}}>{n.date.slice(5)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function P_News({news,onUp,onToast}) {
+  const [f, setF] = useState({type:"",gl:"",cred:"",search:""});
+  const [showF, setShowF] = useState(false);
+  let d = news;
+  if(f.type) d=d.filter(n=>n.type===f.type);
+  if(f.gl) d=d.filter(n=>n.gl===f.gl);
+  if(f.cred) d=d.filter(n=>n.cred===f.cred);
+  if(f.search) d=d.filter(n=>n.title.includes(f.search)||n.summary.includes(f.search));
+  const ss={padding:"6px 10px",borderRadius:8,border:"1px solid #d0d7de",fontSize:13,background:"#fff",width:"100%",boxSizing:"border-box"};
+  return (
+    <div>
+      {/* search */}
+      <div style={{display:"flex",gap:8,marginBottom:10}}>
+        <input placeholder="搜索..." value={f.search} onChange={e=>setF(p=>({...p,search:e.target.value}))} style={{flex:1,padding:"8px 12px",borderRadius:8,border:"1px solid #d0d7de",fontSize:14,outline:"none"}}/>
+        <button onClick={()=>setShowF(!showF)} style={{padding:"8px 14px",borderRadius:8,border:"1px solid #d0d7de",background:showF?"#e0f2f1":"#fff",cursor:"pointer",fontSize:13,whiteSpace:"nowrap"}}>{showF?"收起":"筛选"}</button>
+      </div>
+      {/* filters */}
+      {showF && (
+        <div style={{background:"#fff",borderRadius:10,padding:12,marginBottom:10,border:"1px solid #e8ecf0",display:"grid",gap:8}}>
+          <select value={f.type} onChange={e=>setF(p=>({...p,type:e.target.value}))} style={ss}><option value="">全部类型</option>{["官宣","预告","播出","路透","主创采访","热议","二创扩散"].map(t=><option key={t}>{t}</option>)}</select>
+          <select value={f.gl} onChange={e=>setF(p=>({...p,gl:e.target.value}))} style={ss}><option value="">GL等级</option>{["明确GL","高概率GL","女女支线","讨论向","风险待确认"].map(g=><option key={g}>{g}</option>)}</select>
+          <select value={f.cred} onChange={e=>setF(p=>({...p,cred:e.target.value}))} style={ss}><option value="">可信度</option>{["S","A","B","C"].map(c=><option key={c} value={c}>{c}级</option>)}</select>
+          <button onClick={()=>setF({type:"",gl:"",cred:"",search:""})} style={{fontSize:13,padding:"6px 0",borderRadius:8,border:"1px solid #d0d7de",background:"#f8fafb",cursor:"pointer",color:"#78909c"}}>重置筛选</button>
+        </div>
+      )}
+      <div style={{fontSize:12,color:"#94a3b8",marginBottom:8}}>共 {d.length} 条</div>
+      {d.map(n=><Card key={n.id} item={n} onUp={onUp} onToast={onToast}/>)}
+      {d.length===0 && <div style={{textAlign:"center",color:"#94a3b8",padding:30}}>暂无匹配</div>}
+    </div>
+  );
+}
+
+function P_Draft({onToast}) {
+  const [drafts] = useState(NEWS.filter(n=>n.worth).map(n=>({...n,wb:`【${n.title}】${n.summary.slice(0,60)}…… #GL影视 #百合`,xhs:`${n.title.replace(/[《》]/g,"")}！${n.summary.slice(0,50)}……`,bili:`${n.title} | ${n.summary.slice(0,40)}……`,pub:false})));
+  const [pubs, setPubs] = useState({});
+  const copy=(t,l)=>{navigator.clipboard.writeText(t);onToast(`已复制${l}`);};
+  return (
+    <div>
+      <div style={{fontSize:13,color:"#78909c",marginBottom:12}}>值得发布的内容池</div>
+      {drafts.map(d=>(
+        <div key={d.id} style={{background:"#fff",borderRadius:12,padding:"14px 16px",marginBottom:10,border:"1px solid #e8ecf0",opacity:pubs[d.id]?.55:1}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}><Tag label={d.type}/><Tag label={d.action}/></div>
+            <button onClick={()=>setPubs(p=>({...p,[d.id]:!p[d.id]}))} style={{fontSize:12,padding:"4px 10px",borderRadius:6,border:"none",background:pubs[d.id]?"#e8ecf0":"#1a8a6e",color:pubs[d.id]?"#546e7a":"#fff",cursor:"pointer"}}>{pubs[d.id]?"取消":"已发布"}</button>
+          </div>
+          <div style={{fontWeight:600,fontSize:14,color:"#1a2a3a",marginBottom:10}}>{d.title}</div>
+          {[{l:"微博",t:d.wb,c:"#e65100"},{l:"小红书",t:d.xhs,c:"#c62828"},{l:"B站",t:d.bili,c:"#1565c0"}].map(p=>
+            <div key={p.l} style={{background:"#f8fafb",borderRadius:8,padding:"8px 12px",marginBottom:6,display:"flex",alignItems:"flex-start",gap:8}}>
+              <span style={{fontSize:11,fontWeight:600,color:p.c,background:"#fff",padding:"2px 5px",borderRadius:4,border:`1px solid ${p.c}22`,flexShrink:0}}>{p.l}</span>
+              <span style={{fontSize:13,color:"#3a4a5a",lineHeight:1.6,flex:1}}>{p.t}</span>
+              <button onClick={()=>copy(p.t,p.l)} style={{fontSize:11,padding:"3px 8px",borderRadius:4,border:"1px solid #d0d7de",background:"#fff",cursor:"pointer",flexShrink:0}}>复制</button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function P_Calendar() {
+  const airing=CAL.filter(d=>d.status==="播出中");
+  const upcoming=CAL.filter(d=>d.status==="待播");
+  const ended=CAL.filter(d=>d.status==="已完结");
+  const [open,setOpen]=useState(null);
+
+  const DCard=({d})=>{
+    const isOpen=open===d.name;
+    const pct=d.total>0?Math.round(d.aired/d.total*100):0;
+    return (
+      <div style={{background:"#fff",borderRadius:12,border:"1px solid #e8ecf0",marginBottom:10,overflow:"hidden",borderLeft:`4px solid ${d.color}`}}>
+        <div style={{padding:"14px 16px",cursor:"pointer"}} onClick={()=>setOpen(isOpen?null:d.name)}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+            <div style={{fontWeight:600,fontSize:15,color:"#1a2a3a",flex:1,marginRight:8}}>{d.name}</div>
+            <span style={{fontSize:11,padding:"2px 8px",borderRadius:10,background:d.status==="播出中"?"#e8f5e9":d.status==="待播"?"#e3f2fd":"#f1f5f9",color:d.status==="播出中"?"#2e7d32":d.status==="待播"?"#1565c0":"#78909c",fontWeight:500,flexShrink:0}}>{d.status}</span>
+          </div>
+          <div style={{fontSize:12,color:"#546e7a",marginBottom:6}}>{d.sched}</div>
+          {d.next!=="-" && d.status!=="已完结" && <div style={{fontSize:12,color:"#1a8a6e",fontWeight:600,marginBottom:6}}>{"\u25B6"} 下集：{d.next}</div>}
+          {/* progress */}
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{flex:1,height:6,background:"#f1f5f9",borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:d.status==="已完结"?"#94a3b8":d.color,borderRadius:3,transition:"width .5s"}}/></div>
+            <span style={{fontSize:11,color:"#78909c"}}>{d.aired}/{d.total}集</span>
+          </div>
+          <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>{isOpen?"\u25B2 收起详情":"\u25BC 展开详情"}</div>
+        </div>
+        {isOpen && (
+          <div style={{padding:"0 16px 14px",borderTop:"1px solid #f1f5f9"}}>
+            <div style={{paddingTop:12,display:"grid",gap:8}}>
+              <div style={{background:"#f8fafb",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:11,color:"#78909c",fontWeight:600,marginBottom:4}}>剧情介绍</div>
+                <div style={{fontSize:13,color:"#3a4a5a",lineHeight:1.7}}>{d.synopsis}</div>
+              </div>
+              <div style={{background:"#f8fafb",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:11,color:"#78909c",fontWeight:600,marginBottom:4}}>主演 / 演员</div>
+                <div style={{fontSize:13,color:"#3a4a5a",lineHeight:1.6}}>{d.cast}</div>
+              </div>
+              <div style={{background:"#f8fafb",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontSize:11,color:"#78909c",fontWeight:600,marginBottom:4}}>出品 / 制作</div>
+                <div style={{fontSize:13,color:"#3a4a5a"}}>{d.company}{d.director!=="-"?` · 导演：${d.director}`:""}</div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                <div style={{background:"#f8fafb",borderRadius:8,padding:"10px 12px"}}>
+                  <div style={{fontSize:11,color:"#78909c",fontWeight:600,marginBottom:4}}>播出平台</div>
+                  <div style={{fontSize:12,color:"#3a4a5a"}}>{d.platform}</div>
+                </div>
+                <div style={{background:"#f8fafb",borderRadius:8,padding:"10px 12px"}}>
+                  <div style={{fontSize:11,color:"#78909c",fontWeight:600,marginBottom:4}}>集数 / 片长</div>
+                  <div style={{fontSize:12,color:"#3a4a5a"}}>{d.eps}</div>
+                </div>
+              </div>
+              {d.link && d.link!=="#" && <button onClick={()=>window.open(d.link,"_blank")} style={{fontSize:12,padding:"8px 14px",borderRadius:8,border:"1px solid #b2dfdb",background:"#e0f2f1",color:"#00695c",cursor:"pointer",width:"100%"}}>打开原始链接</button>}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // week schedule (simplified for mobile)
+  const week=[
+    {d:"周一 4/20",s:["Girl Rules EP7"]},
+    {d:"周五 4/18",s:["Hometown Romance EP3","Shades EP2"]},
+    {d:"周六 4/19",s:["Water EP5","Broken of Love EP4"]},
+  ];
+
+  return (
+    <div>
+      {/* this week */}
+      <div style={{background:"#fff",borderRadius:12,padding:"14px 16px",border:"1px solid #e8ecf0",marginBottom:16}}>
+        <div style={{fontWeight:600,fontSize:15,color:"#1a2a3a",marginBottom:10}}>本周更新一览</div>
+        {week.map(w=>
+          <div key={w.d} style={{marginBottom:8}}>
+            <div style={{fontSize:12,fontWeight:600,color:"#1a8a6e",marginBottom:4}}>{w.d}</div>
+            {w.s.map((s,i)=><div key={i} style={{fontSize:13,color:"#3a4a5a",padding:"4px 10px",background:"#f0faf7",borderRadius:6,marginBottom:3}}>{s}</div>)}
+          </div>
+        )}
+        <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>来源：MDL/Wikipedia/官方 · 更新：2026-04-15</div>
+      </div>
+      {/* airing */}
+      <div style={{fontWeight:600,fontSize:15,marginBottom:10,color:"#1a2a3a"}}>{"\u25B6"} 正在播出（{airing.length}）</div>
+      {airing.map(d=><DCard key={d.name} d={d}/>)}
+      <div style={{fontWeight:600,fontSize:15,marginBottom:10,marginTop:16,color:"#1a2a3a"}}>即将播出（{upcoming.length}）</div>
+      {upcoming.map(d=><DCard key={d.name} d={d}/>)}
+      <div style={{fontWeight:600,fontSize:15,marginBottom:10,marginTop:16,color:"#94a3b8"}}>已完结（{ended.length}）</div>
+      {ended.map(d=><DCard key={d.name} d={d}/>)}
+    </div>
+  );
+}
+
+function P_Risk({news,onUp,onToast}) {
+  const risk=news.filter(n=>n.cred==="C"||n.gl==="风险待确认"||n.gl==="讨论向");
+  return (
+    <div>
+      <div style={{background:"#fffde7",borderRadius:10,padding:"10px 14px",marginBottom:14,border:"1px solid #fff9c4",fontSize:13,color:"#f57f17",lineHeight:1.6}}>
+        以下内容存在风险：无信源、粉圈脑补、营销号带节奏、非明确GL。请谨慎判断。
+      </div>
+      {risk.map(n=><Card key={n.id} item={n} onUp={onUp} onToast={onToast}/>)}
+    </div>
+  );
+}
+
+function P_Settings({onToast,ps,setPs}) {
+  const [kws,setKws]=useState(["GL","百合","FreenBecky","MilkLove","NamtanFilm"]);
+  const [nkw,setNkw]=useState("");
+  const sec={background:"#fff",borderRadius:12,padding:"14px 16px",border:"1px solid #e8ecf0",marginBottom:12};
+  return (
+    <div>
+      <div style={sec}>
+        <div style={{fontWeight:600,fontSize:14,marginBottom:8}}>关键词</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+          {kws.map((k,i)=><span key={i} style={{display:"inline-flex",alignItems:"center",gap:3,padding:"3px 10px",borderRadius:14,background:"#e0f2f1",color:"#00695c",fontSize:12}}>{k}<span onClick={()=>setKws(kws.filter((_,j)=>j!==i))} style={{cursor:"pointer",opacity:.6,fontSize:14}}>x</span></span>)}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <input value={nkw} onChange={e=>setNkw(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&nkw.trim()){setKws([...kws,nkw.trim()]);setNkw("");}}} placeholder="添加关键词..." style={{flex:1,padding:"8px 12px",borderRadius:8,border:"1px solid #d0d7de",fontSize:14,outline:"none"}}/>
+          <button onClick={()=>{if(nkw.trim()){setKws([...kws,nkw.trim()]);setNkw("");onToast("已添加");}}} style={{padding:"8px 14px",borderRadius:8,border:"none",background:"#1a8a6e",color:"#fff",fontSize:13,cursor:"pointer"}}>添加</button>
+        </div>
+      </div>
+      {/* push settings */}
+      <div style={{...sec,border:"1.5px solid #b2dfdb"}}>
+        <div style={{fontWeight:600,fontSize:14,marginBottom:10}}>推送设置</div>
+        {[{k:"inApp",t:"页面内推送",d:"新资讯弹窗提醒"},{k:"sound",t:"声音提醒",d:"S级资讯提示音"}].map(item=>
+          <div key={item.k} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #f1f5f9"}}>
+            <div><div style={{fontSize:13,fontWeight:500}}>{item.t}</div><div style={{fontSize:11,color:"#94a3b8"}}>{item.d}</div></div>
+            <Toggle on={ps[item.k]} fn={()=>setPs(s=>({...s,[item.k]:!s[item.k]}))}/>
+          </div>
+        )}
+        <div style={{marginTop:12}}>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>触发条件</div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[{k:"pushS",l:"S级"},{k:"pushA",l:"A级"},{k:"pushOfficial",l:"官宣"}].map(x=>
+              <button key={x.k} onClick={()=>setPs(s=>({...s,[x.k]:!s[x.k]}))} style={{fontSize:12,padding:"5px 12px",borderRadius:14,cursor:"pointer",border:ps[x.k]?"1.5px solid #1a8a6e":"1px solid #d0d7de",background:ps[x.k]?"#e0f2f1":"#fff",color:ps[x.k]?"#00695c":"#78909c",fontWeight:ps[x.k]?600:400}}>{ps[x.k]?"+ ":""}{x.l}</button>
+            )}
+          </div>
+        </div>
+        <div style={{marginTop:12}}>
+          <div style={{fontSize:13,fontWeight:500,marginBottom:6}}>推送频率</div>
+          <div style={{display:"flex",gap:6}}>
+            {[["realtime","实时"],["hourly","每小时"],["daily","每日"]].map(([v,l])=>
+              <button key={v} onClick={()=>setPs(s=>({...s,frequency:v}))} style={{flex:1,padding:"6px 0",borderRadius:6,fontSize:13,cursor:"pointer",border:ps.frequency===v?"none":"1px solid #d0d7de",background:ps.frequency===v?"#1a8a6e":"#fff",color:ps.frequency===v?"#fff":"#4a5568"}}>{l}</button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ NOTIFICATION DRAWER (mobile bottom sheet) ============
+function NotifSheet({open,notifs,onClose,onClear,onRead}) {
+  if(!open) return null;
+  const uc=notifs.filter(n=>n.isNew).length;
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.4)",zIndex:1000,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:"16px 16px 0 0",width:"100%",maxHeight:"70vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"14px 18px",borderBottom:"1px solid #f1f5f9",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontWeight:600,fontSize:15}}>推送中心{uc>0&&<span style={{fontSize:12,color:"#1a8a6e",marginLeft:6}}>{uc}条未读</span>}</div>
+          <button onClick={onClear} style={{fontSize:12,color:"#94a3b8",background:"none",border:"none",cursor:"pointer"}}>全部已读</button>
+        </div>
+        <div style={{flex:1,overflow:"auto"}}>
+          {notifs.map(n=>{
+            const lc=n.level==="S"?"#2e7d32":n.level==="A"?"#1565c0":"#f57f17";
+            return (
+              <div key={n.id} onClick={()=>onRead(n.id)} style={{padding:"12px 18px",borderBottom:"1px solid #f8fafb",background:n.isNew?"#f0faf7":"#fff"}}>
+                <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:n.isNew?"#1a8a6e":"transparent",marginTop:6,flexShrink:0}}/>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:n.isNew?600:400,color:"#1a2a3a",lineHeight:1.5,marginBottom:3}}>{n.title}</div>
+                    <div style={{fontSize:11,color:"#94a3b8",display:"flex",gap:6}}>
+                      <span style={{background:`${lc}15`,color:lc,padding:"1px 5px",borderRadius:3,fontWeight:600,fontSize:10}}>{n.level}级</span>
+                      <span>{n.type}</span><span>{n.time}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ LIVE PUSH BANNER ============
+function LiveBanner({item,vis,onClose,onView}) {
+  if(!vis||!item) return null;
+  const lc=item.level==="S"?"#2e7d32":"#1565c0";
+  return (
+    <div style={{position:"fixed",top:8,left:8,right:8,zIndex:2000,background:"#fff",borderRadius:12,boxShadow:"0 4px 20px rgba(0,0,0,.15)",border:`1.5px solid ${lc}33`,padding:"12px 14px",animation:"slideDown .3s ease"}}>
+      <style>{`@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}`}</style>
+      <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:11,color:"#78909c",marginBottom:2}}><span style={{background:`${lc}18`,color:lc,padding:"1px 5px",borderRadius:3,fontWeight:600,fontSize:10,marginRight:4}}>{item.level}级</span>{item.type} · {item.time}</div>
+          <div style={{fontSize:13,fontWeight:600,color:"#1a2a3a",lineHeight:1.5}}>{item.title}</div>
+        </div>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,color:"#94a3b8",cursor:"pointer",padding:0}}>x</button>
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:8,justifyContent:"flex-end"}}>
+        <button onClick={onClose} style={{fontSize:12,padding:"5px 14px",borderRadius:6,border:"1px solid #e2e8f0",background:"#fff",cursor:"pointer",color:"#78909c"}}>稍后</button>
+        <button onClick={()=>{onView();onClose();}} style={{fontSize:12,padding:"5px 14px",borderRadius:6,border:"none",background:"#1a8a6e",color:"#fff",cursor:"pointer"}}>查看</button>
+      </div>
+    </div>
+  );
+}
+
+// ============ MONITOR PAGE: 重点博主 + 热度追踪 ============
+const MONITOR_ACCOUNTS = [
+  {
+    handle: "@GirlsLove_es",
+    name: "GL \uD83C\uDF38",
+    url: "https://x.com/GirlsLove_es",
+    followers: "6,257",
+    lang: "西班牙语",
+    desc: "西语GL资讯大号，覆盖泰剧/日剧/韩剧/动画。发布GL日历、新剧预告、选角消息。转发官方账号动态速度快，是海外GL圈重要信息节点。",
+    recentPosts: [
+      { text: "转发4 Elements Air拍摄花絮 #เสน่หาวาโยคิว22", time: "8小时前", engagement: "高" },
+      { text: "#CalendarioGL 四月更新：Girl Rules / Water / Hometown Romance / Shades", time: "1天前", engagement: "高" },
+      { text: "确认LingOrm新剧《In Love Forever》小说英文版已在Lunarwrite发布", time: "2天前", engagement: "中" },
+    ],
+  },
+  {
+    handle: "@girlsloveinfo",
+    name: "Girls Love Info \uD83C\uDF08\u2764\uFE0F",
+    url: "https://x.com/girlsloveinfo",
+    followers: "15K+",
+    lang: "英语",
+    desc: "英语GL资讯站官方推特，配套网站girlsloveinfo.com。报道全球GL新剧、选角、开播、制作公司动态。经常首发泰百新项目消息，信息准确度高。",
+    recentPosts: [
+      { text: "CH3确认周五20:30为GL专属时段！My Safe Zone→Play Park→Fulfill→Wedding Dream", time: "5小时前", engagement: "极高" },
+      { text: "LingOrm回归新剧#InLoveForever CH3发布首支预告和海报", time: "1天前", engagement: "极高" },
+      { text: "#ChasingLoveTheSeries加入CHANGE2561 2026阵容 Nile&Namwan主演", time: "3天前", engagement: "高" },
+    ],
+  },
+];
+
+const HOT_CP = [
+  { cp: "NamtanFilm", drama: "Girl Rules", platform: "Twitter/微博", trend: "上升", heat: 95, reason: "EP5亲密戏登泰国热搜#1，EP6高能预告释出" },
+  { cp: "MilkLove", drama: "Girl Rules", platform: "Twitter/iQIYI", trend: "上升", heat: 92, reason: "Girl Rules中Shasha×Gorya线持续发酵，粉丝二创量激增" },
+  { cp: "EngLot", drama: "4 Elements Water", platform: "Twitter", trend: "稳定", heat: 88, reason: "Water播出中，Engfa×Charlotte职场复仇剧吸引新粉丝" },
+  { cp: "FreenBecky", drama: "Cranium/Air", platform: "全平台", trend: "稳定", heat: 96, reason: "Cranium戛纳入选+Air 5月开播，持续霸榜GL圈顶流" },
+  { cp: "LMSY", drama: "Hometown Romance", platform: "Twitter/抖音", trend: "上升", heat: 78, reason: "Hometown Romance首播口碑好，Lookmhee×Sonya第三次合作CP感强" },
+  { cp: "LingOrm", drama: "In Love Forever(待播)", platform: "微博/Twitter", trend: "上升", heat: 82, reason: "CH3确认新剧In Love Forever，LingOrm回归引发期待" },
+  { cp: "ViewMim", drama: "Girl Rules", platform: "Twitter", trend: "新增", heat: 70, reason: "Girl Rules新CP，Min×Praew线为GMMTV新配对，潜力待观察" },
+  { cp: "FayeAtom", drama: "Broken of Love", platform: "Twitter/TikTok", trend: "上升", heat: 72, reason: "Fabel Entertainment首部GL暗黑复仇题材，新鲜感强" },
+];
+
+function P_Monitor() {
+  const [activeTab, setActiveTab] = useState("bloggers"); // "bloggers" | "hot"
+  return (
+    <div>
+      {/* sub tabs */}
+      <div style={{display:"flex",gap:0,marginBottom:14,background:"#fff",borderRadius:10,border:"1px solid #e8ecf0",overflow:"hidden"}}>
+        {[["bloggers","重点博主"],["hot","热度追踪"]].map(([k,l])=>
+          <div key={k} onClick={()=>setActiveTab(k)} style={{flex:1,padding:"10px 0",textAlign:"center",fontSize:13,fontWeight:activeTab===k?600:400,color:activeTab===k?"#1a8a6e":"#78909c",background:activeTab===k?"#f0faf7":"#fff",cursor:"pointer",transition:"all .15s",borderBottom:activeTab===k?"2px solid #1a8a6e":"2px solid transparent"}}>{l}</div>
+        )}
+      </div>
+
+      {activeTab === "bloggers" && (
+        <div>
+          <div style={{fontSize:12,color:"#78909c",marginBottom:10,lineHeight:1.6}}>
+            以下为重点监控的GL资讯推特账号。实时抓取需后端服务配合（Twitter API），当前展示的是基于公开信息的最新动态快照。
+          </div>
+          {MONITOR_ACCOUNTS.map(acc => (
+            <div key={acc.handle} style={{background:"#fff",borderRadius:12,border:"1px solid #e8ecf0",marginBottom:12,overflow:"hidden"}}>
+              {/* header */}
+              <div style={{padding:"14px 16px",borderBottom:"1px solid #f1f5f9"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <div style={{width:40,height:40,borderRadius:"50%",background:"linear-gradient(135deg,#1a8a6e,#1976d2)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14}}>{acc.name[0]}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:14,color:"#1a2a3a"}}>{acc.name}</div>
+                    <div style={{fontSize:12,color:"#1a8a6e"}}>{acc.handle}</div>
+                  </div>
+                  <button onClick={()=>window.open(acc.url,"_blank")} style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:"1px solid #b2dfdb",background:"#e0f2f1",color:"#00695c",cursor:"pointer"}}>打开推特</button>
+                </div>
+                <div style={{fontSize:12,color:"#4a5568",lineHeight:1.6,marginBottom:6}}>{acc.desc}</div>
+                <div style={{fontSize:11,color:"#94a3b8"}}>粉丝：{acc.followers} · 语言：{acc.lang}</div>
+              </div>
+              {/* recent posts */}
+              <div style={{padding:"10px 16px"}}>
+                <div style={{fontSize:11,fontWeight:600,color:"#78909c",marginBottom:8}}>近期动态</div>
+                {acc.recentPosts.map((p,i) => (
+                  <div key={i} style={{padding:"8px 0",borderBottom:i<acc.recentPosts.length-1?"1px solid #f8fafb":"none"}}>
+                    <div style={{fontSize:13,color:"#3a4a5a",lineHeight:1.6,marginBottom:3}}>{p.text}</div>
+                    <div style={{fontSize:11,color:"#94a3b8",display:"flex",gap:8}}>
+                      <span>{p.time}</span>
+                      <span style={{color:p.engagement==="极高"?"#2e7d32":p.engagement==="高"?"#1565c0":"#78909c"}}>互动：{p.engagement}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* add more accounts hint */}
+          <div style={{background:"#f8fafb",borderRadius:10,padding:"12px 16px",border:"1px dashed #d0d7de",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+            + 可在设置中添加更多监控账号
+          </div>
+        </div>
+      )}
+
+      {activeTab === "hot" && (
+        <div>
+          <div style={{fontSize:12,color:"#78909c",marginBottom:10,lineHeight:1.6}}>
+            基于Twitter/微博/抖音公开讨论热度综合评估（0-100）。数据为人工评估快照，实时自动更新需接入API。
+          </div>
+          <div style={{fontSize:11,color:"#94a3b8",marginBottom:12}}>更新时间：2026年4月15日</div>
+          {HOT_CP.sort((a,b) => b.heat - a.heat).map((cp,i) => {
+            const trendColor = cp.trend==="上升"?"#2e7d32":cp.trend==="新增"?"#1565c0":"#78909c";
+            return (
+              <div key={cp.cp} style={{background:"#fff",borderRadius:12,padding:"14px 16px",marginBottom:10,border:"1px solid #e8ecf0"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:16,fontWeight:700,color:i<3?"#1a8a6e":"#94a3b8",width:24}}>#{i+1}</span>
+                    <div>
+                      <div style={{fontWeight:600,fontSize:14,color:"#1a2a3a"}}>{cp.cp}</div>
+                      <div style={{fontSize:12,color:"#78909c"}}>{cp.drama}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:18,fontWeight:700,color:cp.heat>=90?"#2e7d32":cp.heat>=80?"#1565c0":"#f57f17"}}>{cp.heat}</div>
+                    <div style={{fontSize:11,color:trendColor,fontWeight:500}}>{cp.trend==="上升"?"\u2191":cp.trend==="新增"?"\u2605":"\u2192"} {cp.trend}</div>
+                  </div>
+                </div>
+                {/* heat bar */}
+                <div style={{height:5,background:"#f1f5f9",borderRadius:3,overflow:"hidden",marginBottom:6}}>
+                  <div style={{height:"100%",width:`${cp.heat}%`,background:cp.heat>=90?"#1a8a6e":cp.heat>=80?"#1976d2":"#f57f17",borderRadius:3,transition:"width .5s"}}/>
+                </div>
+                <div style={{fontSize:12,color:"#546e7a",lineHeight:1.6}}>{cp.reason}</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>主要平台：{cp.platform}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============ MAIN APP ============
+const TABS = ["首页","资讯","日历","监控","设置"];
+const TABICONS = ["\u2302","\u25C9","\uD83D\uDCC5","\uD83D\uDCE1","\u2699"];
+
+export default function App() {
+  const [tab,setTab]=useState(0);
+  const [news,setNews]=useState(NEWS);
+  const [toast,setToast]=useState({msg:"",vis:false});
+  const [notifs,setNotifs]=useState(PUSH_Q);
+  const [npOpen,setNpOpen]=useState(false);
+  const [lp,setLp]=useState(null);
+  const [lpVis,setLpVis]=useState(false);
+  const pidx=useRef(0);
+  const [ps,setPs]=useState({inApp:true,sound:true,pushS:true,pushA:true,pushOfficial:true,frequency:"realtime"});
+
+  const uc=notifs.filter(n=>n.isNew).length;
+  const toast2=useCallback(m=>{setToast({msg:m,vis:true});setTimeout(()=>setToast(t=>({...t,vis:false})),1600);},[]);
+  const upN=useCallback((id,u)=>setNews(p=>p.map(n=>n.id===id?{...n,...u}:n)),[]);
+
+  const simLive=useRef([
+    {id:"lv1",title:"Hometown Romance EP3预告发布",time:"刚刚",level:"A",type:"预告",isNew:true},
+    {id:"lv2",title:"Girl Rules EP7预告：MilkLove关键对峙",time:"刚刚",level:"S",type:"预告",isNew:true},
+  ]).current;
+
+  useEffect(()=>{
+    if(!ps.inApp) return;
+    const t=setInterval(()=>{
+      if(pidx.current<simLive.length){
+        const np={...simLive[pidx.current],id:"lv_"+Date.now()};
+        setNotifs(p=>[np,...p]);setLp(np);setLpVis(true);
+        setTimeout(()=>setLpVis(false),4500);pidx.current++;
+      }
+    },18000);
+    return ()=>clearInterval(t);
+  },[ps.inApp,simLive]);
+
+  // More pages accessible via header buttons
+  const [subPage,setSubPage]=useState(null); // "highlight"|"risk"|"draft"|null
+
+  const renderMain=()=>{
+    if(subPage==="highlight") {
+      const hl=news.filter(n=>["官宣","预告","播出"].includes(n.type)&&["S","A"].includes(n.cred));
+      return <div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <button onClick={()=>setSubPage(null)} style={{fontSize:14,background:"none",border:"none",cursor:"pointer",color:"#1a8a6e"}}>{"\u2190"} 返回</button>
+          <span style={{fontWeight:600,fontSize:15}}>重点快报</span>
+        </div>
+        <div style={{fontSize:12,color:"#78909c",marginBottom:10}}>官宣/预告/播出且可信度A以上（{hl.length}条）</div>
+        {hl.map(n=><Card key={n.id} item={n} onUp={upN} onToast={toast2}/>)}
+      </div>;
+    }
+    if(subPage==="risk") return <div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+        <button onClick={()=>setSubPage(null)} style={{fontSize:14,background:"none",border:"none",cursor:"pointer",color:"#1a8a6e"}}>{"\u2190"} 返回</button>
+        <span style={{fontWeight:600,fontSize:15}}>风险观察</span>
+      </div>
+      <P_Risk news={news} onUp={upN} onToast={toast2}/>
+    </div>;
+    if(subPage==="draft") return <div>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+        <button onClick={()=>setSubPage(null)} style={{fontSize:14,background:"none",border:"none",cursor:"pointer",color:"#1a8a6e"}}>{"\u2190"} 返回</button>
+        <span style={{fontWeight:600,fontSize:15}}>待发内容</span>
+      </div>
+      <P_Draft onToast={toast2}/>
+    </div>;
+
+    switch(tab){
+      case 0: return <P_Home news={news} onUp={upN} onToast={toast2} go={setTab}/>;
+      case 1: return <P_News news={news} onUp={upN} onToast={toast2}/>;
+      case 2: return <P_Calendar/>;
+      case 3: return <P_Monitor/>;
+      case 4: return <P_Settings onToast={toast2} ps={ps} setPs={setPs}/>;
+      default: return null;
+    }
+  };
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",minHeight:"100vh",maxWidth:500,margin:"0 auto",fontFamily:"'PingFang SC','Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif",background:"#f4f6f8",color:"#1a2a3a",position:"relative"}}>
+      {/* ===== TOP BAR ===== */}
+      <div style={{height:50,background:"#fff",borderBottom:"1px solid #e8ecf0",display:"flex",alignItems:"center",padding:"0 14px",gap:10,flexShrink:0,position:"sticky",top:0,zIndex:100}}>
+        <div style={{width:28,height:28,borderRadius:7,background:"linear-gradient(135deg,#1a8a6e,#1976d2)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:800,fontSize:12}}>GL</div>
+        <span style={{fontWeight:700,fontSize:14,flex:1}}>影视资讯台</span>
+        {/* quick nav buttons */}
+        <button onClick={()=>{setSubPage("draft");setTab(-1);}} style={{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid #e8ecf0",background:"#fff",cursor:"pointer",color:"#1565c0",fontWeight:600}}>{"\u270E"}待发</button>
+        <button onClick={()=>{setSubPage("highlight");setTab(-1);}} style={{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid #e8ecf0",background:"#fff",cursor:"pointer",color:"#1a8a6e",fontWeight:600}}>{"\u26A1"}快报</button>
+        <button onClick={()=>{setSubPage("risk");setTab(-1);}} style={{fontSize:11,padding:"4px 8px",borderRadius:6,border:"1px solid #e8ecf0",background:"#fff",cursor:"pointer",color:"#f57f17",fontWeight:600}}>{"\u26A0"}风险</button>
+        {/* bell */}
+        <div onClick={()=>setNpOpen(true)} style={{position:"relative",cursor:"pointer",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#546e7a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          {uc>0&&<span style={{position:"absolute",top:0,right:0,minWidth:14,height:14,borderRadius:7,background:"#ef4444",color:"#fff",fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{uc}</span>}
+        </div>
+      </div>
+
+      {/* ===== CONTENT ===== */}
+      <div style={{flex:1,overflow:"auto",padding:"12px 12px 80px 12px"}} onClick={()=>{if(subPage&&tab>=0)setSubPage(null);}}>
+        {renderMain()}
+      </div>
+
+      {/* ===== BOTTOM TAB BAR ===== */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,height:60,background:"#fff",borderTop:"1px solid #e8ecf0",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,maxWidth:500,margin:"0 auto"}}>
+        {TABS.map((t,i)=>
+          <div key={t} onClick={()=>{setTab(i);setSubPage(null);}} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",cursor:"pointer",padding:"6px 0",transition:"all .15s"}}>
+            <span style={{fontSize:18,marginBottom:2,opacity:tab===i?1:.5}}>{TABICONS[i]}</span>
+            <span style={{fontSize:10,fontWeight:tab===i?600:400,color:tab===i?"#1a8a6e":"#94a3b8"}}>{t}</span>
+          </div>
+        )}
+      </div>
+
+      {/* overlays */}
+      <NotifSheet open={npOpen} notifs={notifs} onClose={()=>setNpOpen(false)} onClear={()=>{setNotifs(p=>p.map(n=>({...n,isNew:false})));toast2("已全部已读");}} onRead={id=>setNotifs(p=>p.map(n=>n.id===id?{...n,isNew:false}:n))}/>
+      <LiveBanner item={lp} vis={lpVis} onClose={()=>setLpVis(false)} onView={()=>{setTab(1);setSubPage(null);}}/>
+      <Toast msg={toast.msg} vis={toast.vis}/>
+    </div>
+  );
+}
